@@ -19,14 +19,12 @@ Codes and Data for Explainable Text Classification with Partially Labeled Human 
 * [Glove](https://nlp.stanford.edu/projects/glove/), the embedding file that we used is the glove.6B.100d.txt in the [glove6B.zip](http://downloads.cs.stanford.edu/nlp/data/glove.6B.zip)
 * [BioMed](http://bio.nlplab.org/), the embedding file that we used is the [PubMed-w2v.bin](http://evexdb.org/pmresources/vec-space-models/PubMed-w2v.bin)
 
-## The List of Words of Interest
-* [ A list of English positive and negative opinion words or sentiment words](https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html#lexicon), the list of words of interests used for the YELP-HAT dataset. The version we used is in [data/sentiment_words](./data/sentiment_words).
-* [N2C2 Guideline](https://portal.dbmi.hms.harvard.edu/projects/n2c2-nlp/). We used the direct mentions of heart disease (e.g., CAD, Coronary Artery Disease) as outlined by the annotation guidelines of the 2014 Heart Disease Risk Factors Challenge of N2C2 NLP Research Datasets.
-
 ## Datasets
 * [YELP-HAM](https://github.com/cansusen/Human-Attention-for-Text-Classification), we used the [ham_part3.csv](https://github.com/cansusen/Human-Attention-for-Text-Classification/blob/master/raw_data/ham_part3.csv) for our task.
 * [N2C2 2014 Challenge](https://portal.dbmi.hms.harvard.edu/projects/n2c2-nlp/)
+* [Movie Reviews](http://www.eraserbenchmark.com/)
 * [ZuCo](https://osf.io/q3zws/)
+
 
 Preprocessed Data can be found in [data](./data) folders. We did not provide N2C2 data in the folder, because access to this dataset requires a license and agreement forms, which can be founded in the [link](https://portal.dbmi.hms.harvard.edu/projects/n2c2-nlp/).
 
@@ -45,7 +43,6 @@ Below lists the description of each file in the data folder
 
 ## Model Prediction
 * [main_bert.py](./main_bert.py) implements HUG-BERT and other method with BERT as the core sequence model (except Unguided BERT model) using YELP-HAT dataset
-* [main_medical.py](./main_medical.py) implements HUG-BERT and other method with BERT as the core sequence model (except Unguided BERT model) using N2C2 dataset
 * [main_rnn.py](./main_rnn.py) implements HUG-GRU, HUG-LSTM and all other methods with GRU or LSTM as the core sequence model
 
 Below is the sample script for running prediction.
