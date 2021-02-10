@@ -5,23 +5,22 @@ import torch.nn.functional as F
 from transformers import BertPreTrainedModel, BertModel
 
 
-class BiLSTM_Zhang_Attention(nn.Module):
-    
-    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100, bidirectional=False):
+class RNN_RA_Attention(nn.Module):
+    ''''''
+    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
 
-        self.hidden_size = (n_hidden * 2 if bidirectional else n_hidden)
-
+        self.hidden_size = n_hidden
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         assert any(n in model_type.split('-')[0] for n in ['LSTM', 'GRU'])
         self.model_type = model_type
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             self.lstm = nn.LSTM(embedding_dim, self.hidden_size)
         else:
             self.gru = nn.GRU(embedding_dim, self.hidden_size)
         self.word = nn.Linear(self.hidden_size, 1, bias=False)
         self.out = nn.Linear(self.hidden_size,
-                             num_classes, bias=False)  # lstm_output : [batch_size, n_step, n_hidden * num_directions(=2)], F matrix
+                             num_classes, bias=False)
 
     def attention_net(self, lstm_output):
         attn_weights = self.word(lstm_output).squeeze(2)
@@ -40,7 +39,7 @@ class BiLSTM_Zhang_Attention(nn.Module):
         hidden_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
         cell_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
 
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             output, (final_hidden_state, final_cell_state) = self.lstm(input, (hidden_state, cell_state))
         else:
             output, final_hidden_state = self.gru(input, hidden_state)
@@ -54,16 +53,15 @@ class BiLSTM_Zhang_Attention(nn.Module):
         return self.out(attn_output), alpha
         
         
-class BiLSTM_Bar_Attention(nn.Module):
-    def __init__(self, embedding_dim, n_hidden, num_classes, whidden_size, evidence_size, hidden_layer_size, model_type='LSTM', vocab_size=100, bidirectional=False):
+class RNN_Bar_Attention(nn.Module):
+    def __init__(self, embedding_dim, n_hidden, num_classes, whidden_size, evidence_size, hidden_layer_size, model_type='LSTM', vocab_size=100):
         super().__init__()
 
-        self.hidden_size = (n_hidden * 2 if bidirectional else n_hidden)
-
+        self.hidden_size = n_hidden
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         assert any(n in model_type.split('-')[0] for n in ['LSTM', 'GRU'])
         self.model_type = model_type
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             self.lstm = nn.LSTM(embedding_dim, self.hidden_size)
         else:
             self.gru = nn.GRU(embedding_dim, self.hidden_size)
@@ -71,7 +69,7 @@ class BiLSTM_Bar_Attention(nn.Module):
         self.evidence_layer = nn.Linear(whidden_size, evidence_size)
         self.attention_layer = nn.Linear(evidence_size, 1)
         self.before_out = nn.Linear(whidden_size, hidden_layer_size)
-        self.out = nn.Linear(hidden_layer_size, num_classes)  # lstm_output : [batch_size, n_step, n_hidden * num_directions(=2)], F matrix
+        self.out = nn.Linear(hidden_layer_size, num_classes)  
 
     def attention_net(self, rnn_output):
         attn_evidence = torch.tanh(self.evidence_layer(rnn_output))
@@ -91,7 +89,7 @@ class BiLSTM_Bar_Attention(nn.Module):
         hidden_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
         cell_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
 
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             output, (final_hidden_state, final_cell_state) = self.lstm(input, (hidden_state, cell_state))
         else:
             output, final_hidden_state = self.gru(input, hidden_state)
@@ -106,22 +104,21 @@ class BiLSTM_Bar_Attention(nn.Module):
         return self.out(before_output), alpha
 
 
-class BiLSTM_HUG_Attention(nn.Module):
-    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100, bidirectional=False):
+class RNN_HUG_Attention(nn.Module):
+    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
-
-        self.hidden_size = (n_hidden * 2 if bidirectional else n_hidden)
-
+        
+        self.hidden_size = n_hidden
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         assert any(n in model_type.split('-')[0] for n in ['LSTM', 'GRU'])
         self.model_type = model_type
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             self.lstm = nn.LSTM(embedding_dim, self.hidden_size)
         else:
             self.gru = nn.GRU(embedding_dim, self.hidden_size)
         self.before_out = nn.Linear(self.hidden_size*2, self.hidden_size)
         self.out = nn.Linear(self.hidden_size,
-                             num_classes)  # lstm_output : [batch_size, n_step, n_hidden * num_directions(=2)], F matrix
+                             num_classes)  
         self.convert_layer = nn.Linear(self.hidden_size, self.hidden_size)
         self.dropout = nn.Dropout(p=0.2)
 
@@ -147,7 +144,7 @@ class BiLSTM_HUG_Attention(nn.Module):
         hidden_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
         cell_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
 
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             output, (final_hidden_state, final_cell_state) = self.lstm(input, (hidden_state, cell_state))
         else:
             output, final_hidden_state = self.gru(input, hidden_state)
@@ -162,22 +159,21 @@ class BiLSTM_HUG_Attention(nn.Module):
         return self.out(before_output), alpha
     
     
-class BiLSTM_HUGA_Attention(nn.Module):
-    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100, bidirectional=False):
+class RNN_HUGA_Attention(nn.Module):
+    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
 
-        self.hidden_size = (n_hidden * 2 if bidirectional else n_hidden)
-
+        self.hidden_size = n_hidden
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         assert any(n in model_type.split('-')[0] for n in ['LSTM', 'GRU'])
         self.model_type = model_type
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             self.lstm = nn.LSTM(embedding_dim, self.hidden_size)
         else:
             self.gru = nn.GRU(embedding_dim, self.hidden_size)
         self.before_out = nn.Linear(self.hidden_size*2, self.hidden_size)
         self.out = nn.Linear(self.hidden_size,
-                             num_classes)  # lstm_output : [batch_size, n_step, n_hidden * num_directions(=2)], F matrix
+                             num_classes)  
         self.dropout = nn.Dropout(p=0.2)
 
     def attention_net(self, rnn_output, final_state):
@@ -201,7 +197,7 @@ class BiLSTM_HUGA_Attention(nn.Module):
         hidden_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
         cell_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
 
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             output, (final_hidden_state, final_cell_state) = self.lstm(input, (hidden_state, cell_state))
         else:
             output, final_hidden_state = self.gru(input, hidden_state)
@@ -216,22 +212,21 @@ class BiLSTM_HUGA_Attention(nn.Module):
         return self.out(before_output), alpha
     
 
-class BiLSTM_HUGS_Attention(nn.Module):
-    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100, bidirectional=False):
+class RNN_HUGS_Attention(nn.Module):
+    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
 
-        self.hidden_size = (n_hidden * 2 if bidirectional else n_hidden)
-
+        self.hidden_size = n_hidden
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         assert any(n in model_type.split('-')[0] for n in ['LSTM', 'GRU'])
         self.model_type = model_type
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             self.lstm = nn.LSTM(embedding_dim, self.hidden_size)
         else:
             self.gru = nn.GRU(embedding_dim, self.hidden_size)
         self.before_out = nn.Linear(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size,
-                             num_classes)  # lstm_output : [batch_size, n_step, n_hidden * num_directions(=2)], F matrix
+                             num_classes)  
         self.convert_layer = nn.Linear(self.hidden_size, self.hidden_size)
         self.dropout = nn.Dropout(p=0.2)
 
@@ -257,7 +252,7 @@ class BiLSTM_HUGS_Attention(nn.Module):
         hidden_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
         cell_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
 
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             output, (final_hidden_state, final_cell_state) = self.lstm(input, (hidden_state, cell_state))
         else:
             output, final_hidden_state = self.gru(input, hidden_state)
@@ -272,22 +267,21 @@ class BiLSTM_HUGS_Attention(nn.Module):
         return self.out(before_output), alpha
         
         
-class BiLSTM_HUGW_Attention(nn.Module):
-    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100, bidirectional=False):
+class RNN_HUGW_Attention(nn.Module):
+    def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
 
-        self.hidden_size = (n_hidden * 2 if bidirectional else n_hidden)
-
+        self.hidden_size = n_hidden
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         assert any(n in model_type.split('-')[0] for n in ['LSTM', 'GRU'])
         self.model_type = model_type
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             self.lstm = nn.LSTM(embedding_dim, self.hidden_size)
         else:
             self.gru = nn.GRU(embedding_dim, self.hidden_size)
         self.before_out = nn.Linear(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size,
-                             num_classes)  # lstm_output : [batch_size, n_step, n_hidden * num_directions(=2)], F matrix
+                             num_classes)  
         self.convert_layer = nn.Linear(self.hidden_size, self.hidden_size)
         self.dropout = nn.Dropout(p=0.2)
 
@@ -313,7 +307,7 @@ class BiLSTM_HUGW_Attention(nn.Module):
         hidden_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
         cell_state = Variable(torch.zeros(1, len(X), self.hidden_size)).to(input.device)
 
-        if self.model_type.split('-')[0] in ['LSTM', 'BiLSTM']:
+        if self.model_type.split('-')[0] in ['LSTM']:
             output, (final_hidden_state, final_cell_state) = self.lstm(input, (hidden_state, cell_state))
         else:
             output, final_hidden_state = self.gru(input, hidden_state)
@@ -328,7 +322,7 @@ class BiLSTM_HUGW_Attention(nn.Module):
         return self.out(before_output), alpha
 
 
-class BertHUGAttention(BertPreTrainedModel):
+class Bert_HUG_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
@@ -383,7 +377,7 @@ class BertHUGAttention(BertPreTrainedModel):
         return self.out(before_output), alpha
 
 
-class BertHUGAAttention(BertPreTrainedModel):
+class Bert_HUGA_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
@@ -436,7 +430,7 @@ class BertHUGAAttention(BertPreTrainedModel):
         return self.out(before_output), alpha
 
 
-class BertHUGSAttention(BertPreTrainedModel):
+class Bert_HUGS_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
@@ -491,7 +485,7 @@ class BertHUGSAttention(BertPreTrainedModel):
         return self.out(before_output), alpha
 
 
-class BertHUGWAttention(BertPreTrainedModel):
+class Bert_HUGW_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
@@ -546,7 +540,7 @@ class BertHUGWAttention(BertPreTrainedModel):
         return self.out(before_output), alpha
 
         
-class BertBarAttention(BertPreTrainedModel):
+class Bert_Bar_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
@@ -600,7 +594,7 @@ class BertBarAttention(BertPreTrainedModel):
         return self.out(before_output), alpha
         
         
-class BertZhangAttention(BertPreTrainedModel):
+class Bert_RA_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
