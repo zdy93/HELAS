@@ -28,34 +28,49 @@ Codes and Data for Explainable Text Classification with Partially Labeled Human 
 
 Preprocessed Data can be found in [data](./data) folders. We did not provide N2C2 data in the folder, because access to this dataset requires a license and agreement forms, which can be founded in the [link](https://portal.dbmi.hms.harvard.edu/projects/n2c2-nlp/).
 
-Below lists the description of each file in the data folder
-* [human_intersection.npy](./data/human_intersection.npy) Human attention signals of YELP-HAT dataset
-* [mfd_scores.npy](./data/mfd_scores.npy) Mean Fix Duration vectors of ZuCo dataset, can be converted to human attention signals, corresponding to zuco_new_text.npy and zuco_gloves.npy
-* [raw_reviews.npy](./data/raw_reviews.npy) text of YELP-HAT dataset
-* [x_train.zip](./data/x_train.zip) zipped x_train.npy file, which is the Glove embedding vectors of YELP-HAT dataset
-* [y_train.npy](./data/y_train.npy) classification label of YELP-HAT dataset (There is no x_test.npy or y_test.npy file, x_train.npy and y_train.npy contain all instances that we used for both model training and evaluation)
-* [zuco_gloves.npy](./data/zuco_gloves.npy) Glove embedding vectors of ZuCo dataset
-* [zuco_new_text.npy](./data/zuco_new_text.npy) text of ZuCo dataset
-* [zuco_pubmed.npy](./data/zuco_pubmed.npy) BioMed embedding vectors of ZuCo dataset
-* [zuco_pubmed_att_labels.npy](./data/zuco_pubmed_att_labels.npy) Mean Fix Duration vectors of ZuCo dataset, corresponding to zuco_pubmed.npy
-
+Below lists the description of files in each data folder
+* [yelp_data](./yelp_data) data files for Yelp-HAT dataset
+   * [human_intersection.npy](./data/human_intersection.npy) Human attention maps of YELP-HAT dataset
+   * [raw_reviews.npy](./yelp_data/raw_reviews.npy) text of Yelp-HAT dataset
+   * [x.zip](./yelp_data/x.zip) compressed x_train.npy file, which is the Glove embedding vectors of YELP-HAT dataset
+   * [y_train.npy](./data/y.npy) classification label of Yelp-HAT dataset
+* [eye_data](./eye_data) data files for external eye_tracking data
+   * [zuco_gloves.npy](./eye_data/zuco_gloves.npy) Glove embedding vectors of ZuCo dataset
+   * [zuco_new_text.npy](./eye_data/zuco_new_text.npy) text of ZuCo dataset
+   * [mfd_scores.npy](./eye_data/mfd_scores.npy) Mean Fix Duration vectors of ZuCo dataset, can be converted to human attention maps, corresponding to zuco_gloves.npy and zuco_new_text.npy
+   * [zuco_pubmed.npy](./eye_data/zuco_pubmed.npy) BioMed embedding vectors of ZuCo dataset
+   * [zuco_pubmed_att_labels.npy](./eye_data/zuco_pubmed_att_labels.npy) Mean Fix Duration vectors of ZuCo dataset, corresponding to zuco_pubmed.npy
+* [movie_data](./movie_data) data files for Movie Reviews Dataset
+   * [raw_text_train.npy](./movie_data/raw_text_train.npy) text of Movie Reviews training data
+   * [raw_text_val_test.npy](./movie_data/raw_text_val_test.npy) text of Movie Reviews test data
+   * [x_train.rar](./movie_data/x_train.rar) compressed x_train.npy file, which is the Glove embedding vector of Movie Reviews training data
+   * [x_val_test.zip](./movie_data/x_val_test.zip) compressed x_val_test.npy file, which is the Glove embedding vector of Movie Reviews test data
+   * [att_labels_train.npy](./movie_data/att_labels_train.npy) Human attention maps of Movie Reviews training data
+   * [att_labels_val_test.npy](./movie_data/att_labels_val_test.npy) Human attention maps of Movie Reviews test data  
+   * [y_train.npy](./movie_data/y_train.npy) classification label of Movie Reviews training data
+   * [y_val_test.npy](./movie_data/y_test.npy) classification label of Movie Reviews test data  
+   
 
 
 ## Model Prediction
-* [main_bert.py](./main_bert.py) implements HUG-BERT and other method with BERT as the core sequence model (except Unguided BERT model) using YELP-HAT dataset
-* [main_rnn.py](./main_rnn.py) implements HUG-GRU, HUG-LSTM and all other methods with GRU or LSTM as the core sequence model
+* [main_bert.py](./main_bert.py) implements HUG and Barrett et al. with BERT as the core sequence model
+* [main_rnn.py](./main_rnn.py) implements HUG and Barrett et al. with GRU or LSTM as the core sequence model
+* [main_bert_self_label_first.py](./main_bert_self_label_first.py) implements Self-labeling RA with BERT as the core sequence model
+* [main_rnn_self_label_first.py](./main_rnn_self_label_first.py) implements Self-labeling RA with GRU or LSTM as the core sequence model
+* [main_bert_two_steps.py](./main_bert_two_steps.py) implements Limited Supervised RA with BERT as the core sequence model
+* [main_rnn_two_steps.py](./main_rnn_two_steps.py) implements Limited Supervised RA with GRU or LSTM as the core sequence model
 
 Below is the sample script for running prediction.
 ```cmd
 python main_bert.py
    --lamda 100
-   --seed 11
+   --seed 2021
    --annotator human_intersection
-   --log_dir log-BertHUGAttention
-   --model_type BertHUGAttention
+   --log_dir log-Bert-HUG-Attention
+   --model_type Bert-HUG-Attention
 ```
-Here, ```BertHUGAttention``` in the script refers to the model that we proposed in the paper, which utilizes BERT as the core sequence model.
+Here, ```Bert-HUG-Attention``` in the script refers to the HUG framework that we proposed in the paper, which utilizes BERT as the core sequence model.
 
 We refer users to [main_bert.py](./main_bert.py) and other scripts to see the usage of all parameters.
 
-[Download_ZuCo_and_Preprocessing.ipynb](./Download_ZuCo_and_Preprocessing.ipynb) , [Preprocessing_YELP.ipynb](./Preprocessing_YELP.ipynb), and [i2b2_process.ipynb](./i2b2_process.ipynb) are used for pre-processing ZuCo, YELP, and N2C2 dataset, respectively. 
+[Download_ZuCo_and_Preprocessing.ipynb](./Download_ZuCo_and_Preprocessing.ipynb) , [Preprocessing_YELP.ipynb](./Preprocessing_YELP.ipynb), [i2b2_process.ipynb](./i2b2_process.ipynb), [Preprocessing_movie.ipynb](./Preprocessing_movie.ipynb) are used for pre-processing ZuCo, YELP, and N2C2 dataset, respectively. For Preprocessing_movie.ipynb, please run the .ipynb file under the [eraserbenchmark](https://github.com/jayded/eraserbenchmark) repo.
