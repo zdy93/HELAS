@@ -1,5 +1,5 @@
-# HUG-Framework
-Codes and Data for Explainable Text Classification with Partially Labeled Human Attention
+# HELAS
+Codes and Data for Human-like Explanation for Text Classification with Limited Attention Supervision
 
 ## Requirement
 ### Language
@@ -53,8 +53,8 @@ Below lists the description of files in each data folder
 
 
 ## Model Prediction
-* [main_bert.py](./main_bert.py) implements HUG and Barrett et al. with BERT as the core sequence model
-* [main_rnn.py](./main_rnn.py) implements HUG and Barrett et al. with GRU or LSTM as the core sequence model
+* [main_bert.py](./main_bert.py) implements HELAS and Barrett et al. with BERT as the core sequence model
+* [main_rnn.py](./main_rnn.py) implements HELAS and Barrett et al. with GRU or LSTM as the core sequence model
 * [main_bert_self_label_first.py](./main_bert_self_label_first.py) implements Self-labeling RA with BERT as the core sequence model
 * [main_rnn_self_label_first.py](./main_rnn_self_label_first.py) implements Self-labeling RA with GRU or LSTM as the core sequence model
 * [main_bert_two_steps.py](./main_bert_two_steps.py) implements Limited Supervised RA with BERT as the core sequence model
@@ -69,7 +69,7 @@ python main_bert.py
    --log_dir log-Bert-HUG-Attention
    --model_type Bert-HUG-Attention
 ```
-Here, ```Bert-HUG-Attention``` in the script refers to the HUG framework that we proposed in the paper, which utilizes BERT as the core sequence model.
+Here, ```Bert-HUG-Attention``` in the script refers to the HELAS that we proposed in the paper, which utilizes BERT as the core sequence model.
 
 We refer users to [main_bert.py](./main_bert.py) and other scripts to see the usage of all parameters.
 
