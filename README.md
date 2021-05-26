@@ -66,10 +66,10 @@ python main_bert.py
    --lamda 100
    --seed 2021
    --annotator human_intersection
-   --log_dir log-Bert-HUG-Attention
-   --model_type Bert-HUG-Attention
+   --log_dir log-Bert-HELAS-Attention
+   --model_type Bert-HELAS-Attention
 ```
-Here, ```Bert-HUG-Attention``` in the script refers to the HELAS that we proposed in the paper, which utilizes BERT as the core sequence model.
+Here, ```Bert-HELAS-Attention``` in the script refers to the HELAS that we proposed in the paper, which utilizes BERT as the core sequence model.
 
 We refer users to [main_bert.py](./main_bert.py) and other scripts to see the usage of all parameters.
 
