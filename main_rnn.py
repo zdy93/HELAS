@@ -306,7 +306,7 @@ def main():
     args = parser.parse_args()
 
     assert args.model_type.split('-')[0] in ['LSTM', 'GRU']
-    assert args.model_type.split('-')[1] in ['Bar', 'HUG', 'HUGW', 'HUGS', 'HUGA']
+    assert args.model_type.split('-')[1] in ['Bar', 'HELAS', 'HELASW', 'HELASS', 'HELASA']
     assert args.model_type.split('-')[2] in ['CE', 'MSE']
     assert args.annotator in ['human_intersection', 'human', 'eye_tracking']
     assert args.data_source in ['yelp', 'n2c2', 'movie']
@@ -412,14 +412,14 @@ def main():
     logging.info(args)
     print(args)
 
-    if args.model_type.split('-')[1] == 'HUG':
-        model = RNN_HUG_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
-    elif args.model_type.split('-')[1] == 'HUGW':
-        model = RNN_HUGW_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
-    elif args.model_type.split('-')[1] == 'HUGS':
-        model = RNN_HUGS_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
-    elif args.model_type.split('-')[1] == 'HUGA':
-        model = RNN_HUGA_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
+    if args.model_type.split('-')[1] == 'HELAS':
+        model = RNN_HELAS_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
+    elif args.model_type.split('-')[1] == 'HELASW':
+        model = RNN_HELASW_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
+    elif args.model_type.split('-')[1] == 'HELASS':
+        model = RNN_HELASS_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
+    elif args.model_type.split('-')[1] == 'HELASA':
+        model = RNN_HELASA_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
     elif args.model_type.split('-')[1] == 'Bar':
         model = RNN_Bar_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, 200, 100, 50, args.model_type)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=0.01)
@@ -536,14 +536,14 @@ def main():
 
     del model
     torch.cuda.empty_cache()
-    if args.model_type.split('-')[1] == 'HUG':
-        model = RNN_HUG_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
-    elif args.model_type.split('-')[1] == 'HUGW':
-        model = RNN_HUGW_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
-    elif args.model_type.split('-')[1] == 'HUGS':
-        model = RNN_HUGS_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
-    elif args.model_type.split('-')[1] == 'HUGA':
-        model = RNN_HUGA_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
+    if args.model_type.split('-')[1] == 'HELAS':
+        model = RNN_HELAS_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
+    elif args.model_type.split('-')[1] == 'HELASW':
+        model = RNN_HELASW_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
+    elif args.model_type.split('-')[1] == 'HELASS':
+        model = RNN_HELASS_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
+    elif args.model_type.split('-')[1] == 'HELASA':
+        model = RNN_HELASA_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
     elif args.model_type.split('-')[1] == 'Bar':
         model = RNN_Bar_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, 200, 100, 50, args.model_type)
     model.load_state_dict(torch.load(modelname))

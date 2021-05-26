@@ -104,7 +104,7 @@ class RNN_Bar_Attention(nn.Module):
         return self.out(before_output), alpha
 
 
-class RNN_HUG_Attention(nn.Module):
+class RNN_HELAS_Attention(nn.Module):
     def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
         
@@ -159,7 +159,7 @@ class RNN_HUG_Attention(nn.Module):
         return self.out(before_output), alpha
     
     
-class RNN_HUGA_Attention(nn.Module):
+class RNN_HELASA_Attention(nn.Module):
     def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
 
@@ -212,7 +212,7 @@ class RNN_HUGA_Attention(nn.Module):
         return self.out(before_output), alpha
     
 
-class RNN_HUGS_Attention(nn.Module):
+class RNN_HELASS_Attention(nn.Module):
     def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
 
@@ -267,7 +267,7 @@ class RNN_HUGS_Attention(nn.Module):
         return self.out(before_output), alpha
         
         
-class RNN_HUGW_Attention(nn.Module):
+class RNN_HELASW_Attention(nn.Module):
     def __init__(self, embedding_dim, n_hidden, num_classes, model_type='LSTM', vocab_size=100):
         super().__init__()
 
@@ -322,7 +322,7 @@ class RNN_HUGW_Attention(nn.Module):
         return self.out(before_output), alpha
 
 
-class Bert_HUG_Attention(BertPreTrainedModel):
+class Bert_HELAS_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
@@ -377,7 +377,7 @@ class Bert_HUG_Attention(BertPreTrainedModel):
         return self.out(before_output), alpha
 
 
-class Bert_HUGA_Attention(BertPreTrainedModel):
+class Bert_HELASA_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
@@ -430,7 +430,7 @@ class Bert_HUGA_Attention(BertPreTrainedModel):
         return self.out(before_output), alpha
 
 
-class Bert_HUGS_Attention(BertPreTrainedModel):
+class Bert_HELASS_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)
@@ -485,7 +485,7 @@ class Bert_HUGS_Attention(BertPreTrainedModel):
         return self.out(before_output), alpha
 
 
-class Bert_HUGW_Attention(BertPreTrainedModel):
+class Bert_HELASW_Attention(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModel(config)

@@ -429,13 +429,13 @@ def main():
     parser.add_argument('--log_dir', default='log-BERT', type=str)
     parser.add_argument("--save_model", default=False, action='store_true')
     parser.add_argument("--early_stop", default=True, action='store_false')
-    parser.add_argument("--model_type", default='Bert-HUG-CE', type=str)
+    parser.add_argument("--model_type", default='Bert-HELAS-CE', type=str)
     parser.add_argument('--data_source', default='yelp')
 
     args = parser.parse_args()
 
     assert args.model_type.split('-')[0] in ['Bert']
-    assert args.model_type.split('-')[1] in ['Bar', 'HUG', 'HUGW', 'HUGS', 'HUGA']
+    assert args.model_type.split('-')[1] in ['Bar', 'HELAS', 'HELASW', 'HELASS', 'HELASA']
     assert args.model_type.split('-')[2] in ['CE', 'MSE']
     assert args.annotator in ['human_intersection', 'human', 'eye_tracking']
     assert args.data_source in ['yelp', 'n2c2', 'movie']
@@ -587,14 +587,14 @@ def main():
     logging.info(args)
     print(args)
 
-    if args.model_type.split('-')[1] == 'HUG':
-        model = Bert_HUG_Attention.from_pretrained(args.bert_model)
-    elif args.model_type.split('-')[1] == 'HUGW':
-        model = Bert_HUGW_Attention.from_pretrained(args.bert_model)
-    elif args.model_type.split('-')[1] == 'HUGS':
-        model = Bert_HUGS_Attention.from_pretrained(args.bert_model)
-    elif args.model_type.split('-')[1] == 'HUGA':
-        model = Bert_HUGA_Attention.from_pretrained(args.bert_model)
+    if args.model_type.split('-')[1] == 'HELAS':
+        model = Bert_HELAS_Attention.from_pretrained(args.bert_model)
+    elif args.model_type.split('-')[1] == 'HELASW':
+        model = Bert_HELASW_Attention.from_pretrained(args.bert_model)
+    elif args.model_type.split('-')[1] == 'HELASS':
+        model = Bert_HELASS_Attention.from_pretrained(args.bert_model)
+    elif args.model_type.split('-')[1] == 'HELASA':
+        model = Bert_HELASA_Attention.from_pretrained(args.bert_model)
     elif args.model_type.split('-')[1] == 'Bar':
         model = Bert_Bar_Attention.from_pretrained(args.bert_model)
     else:
@@ -729,14 +729,14 @@ def main():
 
     del model
     torch.cuda.empty_cache()
-    if args.model_type.split('-')[1] == 'HUG':
-        model = Bert_HUG_Attention.from_pretrained(args.bert_model)
-    elif args.model_type.split('-')[1] == 'HUGW':
-        model = Bert_HUGW_Attention.from_pretrained(args.bert_model)
-    elif args.model_type.split('-')[1] == 'HUGS':
-        model = Bert_HUGS_Attention.from_pretrained(args.bert_model)
-    elif args.model_type.split('-')[1] == 'HUGA':
-        model = Bert_HUGA_Attention.from_pretrained(args.bert_model)
+    if args.model_type.split('-')[1] == 'HELAS':
+        model = Bert_HELAS_Attention.from_pretrained(args.bert_model)
+    elif args.model_type.split('-')[1] == 'HELASW':
+        model = Bert_HELASW_Attention.from_pretrained(args.bert_model)
+    elif args.model_type.split('-')[1] == 'HELASS':
+        model = Bert_HELASS_Attention.from_pretrained(args.bert_model)
+    elif args.model_type.split('-')[1] == 'HELASA':
+        model = Bert_HELASA_Attention.from_pretrained(args.bert_model)
     elif args.model_type.split('-')[1] == 'Bar':
         model = Bert_Bar_Attention.from_pretrained(args.bert_model)
     else:
