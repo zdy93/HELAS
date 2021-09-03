@@ -72,5 +72,3 @@ python main_bert.py
 Here, ```Bert-HELAS-Attention``` in the script refers to the HELAS that we proposed in the paper, which utilizes BERT as the core sequence model.
 
 We refer users to [main_bert.py](./main_bert.py) and other scripts to see the usage of all parameters.
-
-[Download_ZuCo_and_Preprocessing.ipynb](./Download_ZuCo_and_Preprocessing.ipynb) , [Preprocessing_YELP.ipynb](./Preprocessing_YELP.ipynb), [i2b2_process.ipynb](./i2b2_process.ipynb), [Preprocessing_movie.ipynb](./Preprocessing_movie.ipynb) are used for pre-processing ZuCo, YELP, and N2C2 dataset, respectively. For Preprocessing_movie.ipynb, please run the .ipynb file under the [eraserbenchmark](https://github.com/jayded/eraserbenchmark) repo.
