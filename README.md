@@ -24,6 +24,7 @@ Codes and Data for Human-like Explanation for Text Classification with Limited A
 * [N2C2 2014 Challenge](https://portal.dbmi.hms.harvard.edu/projects/n2c2-nlp/)
 * [Movie Reviews](http://www.eraserbenchmark.com/)
 * [ZuCo](https://osf.io/q3zws/)
+* [Standard  Sentiment  Treebank (SST)](https://huggingface.co/datasets/sst#source-data)
 
 
 Preprocessed Data can be found in [data](./data) folders. We did not provide N2C2 data in the folder, because access to this dataset requires a license and agreement forms, which can be founded in the [link](https://portal.dbmi.hms.harvard.edu/projects/n2c2-nlp/).
@@ -49,10 +50,24 @@ Below lists the description of files in each data folder
    * [att_labels_val_test.npy](./movie_data/att_labels_val_test.npy) Human attention maps of Movie Reviews test data  
    * [y_train.npy](./movie_data/y_train.npy) classification label of Movie Reviews training data
    * [y_val_test.npy](./movie_data/y_test.npy) classification label of Movie Reviews test data  
-   
+* [senti_data](.senti_data) data files for SST dataset
+  * [att_labels_with_att_train.npy](./senti_data/att_labels_with_att_train.npy) Human attention maps of SST training data which were annotated with human attention map
+  * [att_labels_with_att_val_test.npy](./senti_data/att_labels_with_att_val_test.npy) Human attention maps of SST test data which were annotated with human attention map
+  * [raw_text_with_att_train.npy](./senti_data/raw_text_with_att_train.npy) text of SST training data which were annotated with human attention map
+  * [raw_text_with_att_val_test.npy](./senti_data/raw_text_with_att_val_test.npy) text of SST test data which were annotated with human attention map
+  * [raw_text_without_att_train.npy](./senti_data/raw_text_without_att_train.npy) text of SST training data which were not annotated with human attention map
+  * [raw_text_without_att_val_test.npy](./senti_data/raw_text_without_att_val_test.npy) text of SST test data which were not annotated with human attention map
+  * [x_with_att_train.npy](./senti_data/x_with_att_train.npy) Glove embedding vector of SST training data which were annotated with human attention map
+  * [x_with_att_val_test.npy](./senti_data/x_with_att_val_test.npy) Glove embedding vector of SST test data which were annotated with human attention map
+  * [x_without_att_train.rar](./senti_data/x_without_att_train.rar) compressed x_without_att_train.npy file, which is the Glove embedding vector of SST training data which were not annotated with human attention map
+  * [x_without_att_val_test.rar](./senti_data/x_without_att_val_test.rar) compressed x_without_att_val_test.npy file, which is the Glove embedding vector of SST test data which were not annotated with human attention map
+  * [y_with_att_train.npy](./senti_data/y_with_att_train.npy) classification label of SST training data which were annotated with human attention map
+  * [y_with_att_val_test.npy](./senti_data/y_with_att_val_test.npy) classification label of SST test data which were annotated with human attention map
+  * [y_without_att_train.npy](./senti_data/y_without_att_train.npy) classification label of SST training data which were not annotated with human attention map
+  * [y_without_att_val_test.npy](./senti_data/y_without_att_val_test.npy) classification label of SST test data which were not annotated with human attention map
 
 
-## Model Prediction
+## Model Training
 * [main_bert.py](./main_bert.py) implements HELAS and Barrett et al. with BERT as the core sequence model
 * [main_rnn.py](./main_rnn.py) implements HELAS and Barrett et al. with GRU or LSTM as the core sequence model
 * [main_bert_self_label_first.py](./main_bert_self_label_first.py) implements Self-labeling RA with BERT as the core sequence model
@@ -60,15 +75,8 @@ Below lists the description of files in each data folder
 * [main_bert_two_steps.py](./main_bert_two_steps.py) implements Limited Supervised RA with BERT as the core sequence model
 * [main_rnn_two_steps.py](./main_rnn_two_steps.py) implements Limited Supervised RA with GRU or LSTM as the core sequence model
 
-Below is the sample script for running prediction.
-```cmd
-python main_bert.py
-   --lamda 100
-   --seed 2021
-   --annotator human_intersection
-   --log_dir log-Bert-HELAS-Attention
-   --model_type Bert-HELAS-Attention
-```
-Here, ```Bert-HELAS-Attention``` in the script refers to the HELAS that we proposed in the paper, which utilizes BERT as the core sequence model.
+See sample scripts [example_rnn.sh](./example_rnn.sh) and [example_bert.sh](./example_bert.sh) for running experiments. 
 
 We refer users to [main_bert.py](./main_bert.py) and other scripts to see the usage of all parameters.
+
+[Download_ZuCo_and_Preprocessing.ipynb](./Download_ZuCo_and_Preprocessing.ipynb) , [Preprocessing_YELP.ipynb](./Preprocessing_YELP.ipynb), [i2b2_process.ipynb](./i2b2_process.ipynb), [Preprocessing_movie.ipynb](./Preprocessing_movie.ipynb), and [Process_SST.ipynb](./Process_SST.ipynb) are used for pre-processing ZuCo, YELP, N2C2, Movie review, and SST dataset.
