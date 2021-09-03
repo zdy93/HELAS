@@ -2,6 +2,9 @@ from __future__ import print_function
 
 import numpy as np
 import six
+import torch.nn as nn
+import torch
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
 
 
 def batch_generator(X, y, batch_size):
@@ -278,6 +281,69 @@ def pad_sequences(sequences, maxlen=None, dtype='int32',
         else:
             raise ValueError('Padding type "%s" not understood' % padding)
     return x
+
+
+def eval_metrics(preds, y):
+    """
+    Returns accuracy per batch, i.e. if you get 8/10 right, this returns 0.8
+    """
+    m = nn.Softmax(dim=1)
+    probabilities = m(preds)
+    values, indices = torch.max(probabilities, 1)
+    y_pred = indices
+    acc = accuracy_score(y, y_pred)
+    try:
+        auc = roc_auc_score(y, values)
+    except ValueError:
+        auc = np.array(0)
+    conf_mat = confusion_matrix(y, y_pred, labels=[0, 1])
+    tn = conf_mat[0, 0]
+    fp = conf_mat[0, 1]
+    fn = conf_mat[1, 0]
+    tp = conf_mat[1, 1]
+    pos_f1_score = f1_score(y, y_pred, average='binary', zero_division=1)
+    mar_f1_score = f1_score(y, y_pred, average='macro', zero_division=1)
+    mic_f1_score = f1_score(y, y_pred, average='micro', zero_division=1)
+    wei_f1_score = f1_score(y, y_pred, average='weighted', zero_division=1)
+    performance_dict = {'acc':acc, 'auc':auc,
+                        'tn':tn, 'fp':fp, 'fn':fn, 'tp':tp,
+                        'pos_f1':pos_f1_score, 'mac_f1':mar_f1_score,
+                        'mic_f1':mic_f1_score, 'wei_f1':wei_f1_score}
+    return performance_dict
+
+
+def eval_predicted_metrics(y_pred, values, y):
+    acc = accuracy_score(y, y_pred)
+    try:
+        auc = roc_auc_score(y, values)
+    except ValueError:
+        auc = np.array(0)
+    conf_mat = confusion_matrix(y, y_pred, labels=[0, 1])
+    tn = conf_mat[0, 0]
+    fp = conf_mat[0, 1]
+    fn = conf_mat[1, 0]
+    tp = conf_mat[1, 1]
+    pos_f1_score = f1_score(y, y_pred, average='binary', zero_division=1)
+    mar_f1_score = f1_score(y, y_pred, average='macro', zero_division=1)
+    mic_f1_score = f1_score(y, y_pred, average='micro', zero_division=1)
+    wei_f1_score = f1_score(y, y_pred, average='weighted', zero_division=1)
+    performance_dict = {'acc': acc, 'auc': auc,
+                        'tn': tn, 'fp': fp, 'fn': fn, 'tp': tp,
+                        'pos_f1': pos_f1_score, 'mac_f1': mar_f1_score,
+                        'mic_f1': mic_f1_score, 'wei_f1': wei_f1_score}
+    return performance_dict
+
+
+def binary_accuracy(preds, y):
+    """
+    Returns accuracy per batch, i.e. if you get 8/10 right, this returns 0.8
+    """
+    m = nn.Softmax(dim=1)
+    probabilities = m(preds)
+    values, indices = torch.max(probabilities, 1)
+    y_pred = indices
+    acc = accuracy_score(y, y_pred)
+    return acc
 
 
 if __name__ == "__main__":

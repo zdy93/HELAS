@@ -6,7 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from model import *
-from utils import batch_seq_generator, san_batch_generator, great_batch_generator
+from utils import batch_seq_generator, san_batch_generator, great_batch_generator, \
+eval_metrics, eval_predicted_metrics, pad_sequences
 import numpy as np
 from tqdm import tqdm
 import random
@@ -19,380 +20,11 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 import json
+from rnn_train_eval import *
 
 
 NOTE = 'V1.0.0: Formal Version'
 
-def binary_accuracy(preds, y):
-    """
-    Returns accuracy per batch, i.e. if you get 8/10 right, this returns 0.8
-    """
-
-    m = nn.Softmax(dim=1)
-    probabilities = m(preds)
-    values, indices = torch.max(probabilities, 1)
-    y_pred = indices
-    acc = accuracy_score(y, y_pred)
-    return acc
-
-
-def train(model, optimizer, criterion, attention_criterion, train_batch_generator, num_batches, device, args):
-    """
-    Main training routine
-    """
-    epoch_loss = 0
-    epoch_acc = 0
-    epoch_cl = 0
-    epoch_al = 0
-
-    model.train()
-
-    # Training
-    for b in tqdm(range(num_batches)):
-        x_batch, y_batch, att_labels = next(train_batch_generator)
-        x_batch = Variable(torch.FloatTensor(x_batch)).to(device)
-        y_batch = y_batch.astype(np.float)
-        y_batch = Variable(torch.LongTensor(y_batch)).to(device)
-        att_labels = Variable(torch.FloatTensor(att_labels)).to(device)
-        # att_labels = f.normalize(att_labels, p=1, dim=1)
-
-        optimizer.zero_grad()
-        predictions, machine_attention = model(x_batch)
-
-        loss_classification = criterion(predictions, y_batch)
-
-        if args.supervise_attention:
-            # loss_attention = torch.sum((machine_attention - att_labels) ** 2)
-            # loss = loss_classification + args.lamda * loss_attention.type('torch.FloatTensor')
-            # loss_attention = attention_criterion(machine_attention.view(-1), att_labels.view(-1))
-            loss_attention = attention_criterion(machine_attention, att_labels)
-            loss = loss_classification + args.lamda * loss_attention
-            # loss = loss_attention
-
-        else:
-            loss = loss_classification
-
-        loss.backward()
-        optimizer.step()
-
-        acc = binary_accuracy(predictions.detach().cpu(), y_batch.detach().cpu())
-        epoch_loss += loss.item()
-        epoch_acc += acc.item()
-        epoch_cl += loss_classification.item()
-        epoch_al += loss_attention.item()
-
-    print(
-        f'\tClassification Loss: {epoch_cl / num_batches:.3f} | Attention Loss: {epoch_al / num_batches:.3f} | Total: {epoch_loss / num_batches:.3f}')
-    return epoch_loss / num_batches, epoch_acc / num_batches
-
-
-def train_att_only(model, optimizer, attention_criterion, train_batch_generator, num_batches, device):
-    """
-    Main training routine
-    """
-    epoch_loss = 0
-
-    model.train()
-
-    # Training
-    for b in tqdm(range(num_batches)):
-        a_x_batch, a_att_labels_batch = next(train_batch_generator)
-        a_x_batch = torch.FloatTensor(a_x_batch).to(device)
-        a_att_labels_batch = torch.FloatTensor(a_att_labels_batch).to(device)
-
-        optimizer.zero_grad()
-        predictions, machine_attention = model(a_x_batch)
-        loss = attention_criterion(machine_attention, a_att_labels_batch)
-        loss.backward()
-        optimizer.step()
-        epoch_loss += loss.item()
-    print(f'\tAttention Loss: {epoch_loss / num_batches:.3f}')
-    return epoch_loss / num_batches
-
-
-def train_no_ham(model, optimizer, criterion, train_batch_generator, num_batches, device):
-    """
-    Main training routine
-    """
-    epoch_loss = 0
-    epoch_acc = 0
-
-    model.train()
-
-    # Training
-    for b in tqdm(range(num_batches)):
-        x_batch, y_batch = next(train_batch_generator)
-        x_batch = Variable(torch.FloatTensor(x_batch)).to(device)
-        y_batch = y_batch.astype(np.float)
-        y_batch = Variable(torch.LongTensor(y_batch)).to(device)
-
-        optimizer.zero_grad()
-        predictions, machine_attention = model(x_batch)
-
-        loss = criterion(predictions, y_batch)
-
-        loss.backward()
-        optimizer.step()
-
-        acc = binary_accuracy(predictions.detach().cpu(), y_batch.detach().cpu())
-        epoch_loss += loss.item()
-        epoch_acc += acc.item()
-
-    print(f'\tClassification Loss: {epoch_loss / num_batches:.3f}')
-    return epoch_loss / num_batches, epoch_acc / num_batches
-
-
-def external_att_train(model, optimizer, criterion, attention_criterion,
-                       train_batch_generator, attention_train_batch_generator,
-                       num_batches, device, args):
-    """
-    Main training routine, with two different data source
-    """
-    epoch_loss = 0
-    epoch_acc = 0
-    epoch_cl = 0
-    epoch_al = 0
-
-    model.train()
-
-    # Training
-    for b in tqdm(range(num_batches)):
-        x_batch, y_batch, att_labels = next(train_batch_generator)
-        a_x_batch, a_att_labels_batch = next(attention_train_batch_generator)
-        x_batch = torch.FloatTensor(x_batch).to(device)
-        y_batch = y_batch.astype(np.float)
-        y_batch = torch.LongTensor(y_batch).to(device)
-        # att_labels = f.normalize(att_labels, p=1, dim=1)
-
-        optimizer.zero_grad()
-        predictions, machine_attention = model(x_batch)
-
-        loss_classification = criterion(predictions, y_batch)
-        loss = loss_classification
-        loss.backward()
-        optimizer.step()
-        epoch_cl += loss_classification.item()
-        acc = binary_accuracy(predictions.detach().cpu(), y_batch.detach().cpu())
-        epoch_acc += acc.item()
-
-        a_x_batch = torch.FloatTensor(a_x_batch).to(device)
-        a_att_labels_batch = torch.FloatTensor(a_att_labels_batch).to(device)
-
-        optimizer.zero_grad()
-        predictions, machine_attention = model(a_x_batch)
-        loss_attention = attention_criterion(machine_attention, a_att_labels_batch)
-
-        loss = args.lamda * loss_attention
-        loss.backward()
-        optimizer.step()
-        epoch_al += loss_attention.item()
-    print(f'\tClassification Loss: {epoch_cl / (b + 1):.3f} | Attention Loss: {epoch_al / (b + 1):.3f}')
-    return epoch_cl / num_batches, epoch_al / num_batches, epoch_acc / num_batches
-
-
-def evaluate_acc(model, criterion, test_batch_generator, num_batches, device):
-    m = nn.Softmax(dim=1)
-    epoch_loss, epoch_acc = 0, 0
-    model.eval()
-    with torch.no_grad():
-        for b in tqdm(range(num_batches)):
-            x_batch, y_batch = next(test_batch_generator)
-            x_batch = torch.FloatTensor(x_batch).to(device)
-            y_batch = y_batch.astype(np.float)
-            y_batch = torch.LongTensor(y_batch).to(device)
-
-            predictions, machine_attention = model(x_batch)
-            probs = m(predictions)
-            y_pred_values, y_pred = torch.max(probs, 1)
-            
-            loss = criterion(predictions, y_batch)
-            acc = accuracy_score(y_batch.detach().cpu(), y_pred.detach().cpu())
-            
-            epoch_loss += loss.item()
-            epoch_acc += acc.item()
-    return epoch_loss / num_batches, epoch_acc / num_batches
-
-
-def evaluate(model, criterion, test_batch_generator, num_batches, device):
-    m = nn.Softmax(dim=1)
-    epoch_loss, epoch_acc = 0, 0
-    epoch_suff, epoch_comp = 0, 0
-    model.eval()
-    with torch.no_grad():
-        for b in tqdm(range(num_batches)):
-            x_batch, y_batch = next(test_batch_generator)
-            x_batch = torch.FloatTensor(x_batch).to(device)
-            y_batch = y_batch.astype(np.float)
-            y_batch = torch.LongTensor(y_batch).to(device)
-
-            predictions, machine_attention = model(x_batch)
-            probs = m(predictions)
-            y_pred_values, y_pred = torch.max(probs, 1)
-            
-            loss = criterion(predictions, y_batch)
-            acc = accuracy_score(y_batch.detach().cpu(), y_pred.detach().cpu())
-            
-            prop_list = [0.01, 0.05, 0.10, 0.20, 0.50]
-            suff_sum = torch.zeros(x_batch.shape[0]).to(device)
-            comp_sum = torch.zeros(x_batch.shape[0]).to(device)
-            for prop in prop_list:
-                suff_mask = machine_attention > torch.topk(machine_attention,
-                            max(1,int(machine_attention.shape[1]*prop)), dim=1, largest=False)[0][:,-1].unsqueeze(1)
-                comp_mask = machine_attention < torch.topk(machine_attention,
-                                max(1,int(machine_attention.shape[1]*prop)), dim=1)[0][:,-1].unsqueeze(1)
-                suff_attention = machine_attention * suff_mask
-                comp_attention = machine_attention * comp_mask
-                suff_predictions, suff_attention = model(x_batch, suff_attention)
-                comp_predictions, comp_attention = model(x_batch, comp_attention)
-                suff_probs =  m(suff_predictions)
-                comp_probs = m(comp_predictions)
-                suff_diff_p = probs - suff_probs
-                comp_diff_p = probs - comp_probs
-                suff_p = torch.masked_select(suff_diff_p, (nn.functional.one_hot(y_pred, num_classes=2) == 1))
-                comp_p = torch.masked_select(comp_diff_p, (nn.functional.one_hot(y_pred, num_classes=2) == 1))
-                suff_sum += suff_p
-                comp_sum += comp_p
-            suff_aopc = torch.mean(suff_sum * 1/(len(prop_list)+1))
-            comp_aopc = torch.mean(comp_sum * 1/(len(prop_list)+1))
-            epoch_suff += suff_aopc.item()
-            epoch_comp += comp_aopc.item()
-            epoch_loss += loss.item()
-            epoch_acc += acc.item()
-    return epoch_loss / num_batches, epoch_acc / num_batches, epoch_suff / num_batches, epoch_comp / num_batches
-
-
-def get_pseudo_attention(model, X_train_noham, y_train_noham, conf_thres, device):
-    '''
-    Get pseudo attention for noham data
-    :param model:
-    :param X_train_noham:
-    :param y_train_noham:
-    :param masks_train_noham:
-    :param conf_thres:
-    :param device:
-    :return:
-    '''
-    model.eval()
-    m = nn.Softmax(dim=1)
-    with torch.no_grad():
-        x_batch = torch.FloatTensor(X_train_noham).to(device)
-        y_batch = y_train_noham.astype(np.float)
-        y_batch = torch.LongTensor(y_batch).to(device)
-
-        predictions, machine_attention = model(x_batch)
-
-        probabilities = m(predictions)
-        values, indices = torch.max(probabilities, 1)
-        y_pred = indices
-        acc_list = (y_pred == y_batch).detach().cpu().numpy()
-        pseudo_att = (machine_attention > conf_thres).detach().cpu().numpy().astype(np.int64)
-        conf_list = pseudo_att.sum(axis=1)
-        conf_order = np.argsort(conf_list)[::-1]
-
-        return pseudo_att, conf_order, acc_list
-
-
-def get_pseudo_attention_orig(model, X_train_noham, y_train_noham, conf_thres, device):
-    '''
-    Get pseudo attention for noham data
-    :param model:
-    :param X_train_noham:
-    :param y_train_noham:
-    :param masks_train_noham:
-    :param conf_thres:
-    :param device:
-    :return:
-    '''
-    model.eval()
-    m = nn.Softmax(dim=1)
-    with torch.no_grad():
-        x_batch = torch.FloatTensor(X_train_noham).to(device)
-        y_batch = y_train_noham.astype(np.float)
-        y_batch = torch.LongTensor(y_batch).to(device)
-
-        predictions, machine_attention = model(x_batch)
-
-        probabilities = m(predictions)
-        values, indices = torch.max(probabilities, 1)
-        y_pred = indices
-        acc_list = (y_pred == y_batch).detach().cpu().numpy()
-        pseudo_att = (machine_attention > conf_thres).detach().cpu().numpy().astype(np.int64)
-        conf_list = (machine_attention - conf_thres).abs().sum(axis=1).detach().cpu().numpy()
-        y_dis = (values - y_batch).abs().detach().cpu().numpy()
-
-        return pseudo_att, conf_list, y_dis, acc_list
-
-
-def get_pseudo_attention_one_only(model, X_train_noham, y_train_noham, conf_thres, device):
-    '''
-    Get pseudo attention for noham data
-    :param model:
-    :param X_train_noham:
-    :param y_train_noham:
-    :param masks_train_noham:
-    :param conf_thres:
-    :param device:
-    :return:
-    '''
-    model.eval()
-    m = nn.Softmax(dim=1)
-    with torch.no_grad():
-        x_batch = torch.FloatTensor(X_train_noham).to(device)
-        y_batch = y_train_noham.astype(np.float)
-        y_batch = torch.LongTensor(y_batch).to(device)
-
-        predictions, machine_attention = model(x_batch)
-
-        probabilities = m(predictions)
-        values, indices = torch.max(probabilities, 1)
-        y_pred = indices
-        acc_list = (y_pred == y_batch).detach().cpu().numpy()
-        pseudo_att = (machine_attention > conf_thres).detach().cpu().numpy().astype(np.int64)
-        conf_list = np.abs(machine_attention.detach().cpu().numpy() * pseudo_att).sum(axis=1)
-        y_dis = (values - y_batch).abs().detach().cpu().numpy()
-
-        return pseudo_att, conf_list, y_dis, acc_list
-
-
-def single_evaluate(model, x_item, y_item, device):
-    """
-    Evaluates a single instance and ALSO returns the attention scores for this instance.
-    Use this routine for attention evaluation
-    """
-    model.eval()
-
-    with torch.no_grad():
-        x_item = Variable(torch.FloatTensor(x_item)).to(device)
-        y_item = y_item.astype(np.float)
-        y_item = Variable(torch.LongTensor(y_item)).to(device)
-
-        predictions, machine_attention = model(x_item)
-
-        acc = binary_accuracy(predictions.detach().cpu(), y_item.detach().cpu())
-        epoch_acc = acc.item()
-
-    return epoch_acc, machine_attention
-
-
-def eval_human_likeness(model, X_test, y_test, attention_labels_test, device):
-    total_auc = 0
-    mean_auc = 0
-    num_instances = 0
-
-    for i in range(0, X_test.shape[0]):
-        item_acc, att_weights = single_evaluate(model, X_test[i:i + 1], y_test[i:i + 1], device)
-        att_weights = torch.squeeze(att_weights)
-        human_att = attention_labels_test[i]
-        if np.sum(human_att) > 0:
-            auc = roc_auc_score(human_att, att_weights.detach().cpu())
-            total_auc += auc
-            num_instances += 1
-
-    mean_auc = total_auc / num_instances
-    print("Human-likeness score: ", mean_auc)
-    return mean_auc
-
-            
             
 ### Main
 def main():
@@ -423,6 +55,7 @@ def main():
     parser.add_argument('--y_dis_weight', default=10, type=float)
     parser.add_argument('--num_add_batch', default=None, type=int)
     parser.add_argument('--num_retrain_epoch', default=5, type=int)
+    parser.add_argument('--performance_file', default='all_self_label_first_performance.txt')
     
     args = parser.parse_args()
 
@@ -431,7 +64,7 @@ def main():
     assert args.model_type.split('-')[1] in ['RA']
     assert args.model_type.split('-')[2] in ['CE', 'MSE']
     assert args.annotator in ['human_intersection', 'human']
-    assert args.data_source in ['yelp', 'n2c2', 'movie']
+    assert args.data_source in ['yelp', 'n2c2', 'movie', 'senti', 'senti_nj', 'senti_wj']
     assert args.semi_type in ['skip', 'base-self-label', 'acc-help-label', 'orig-base-self-label',
                               'orig-acc-weight-label']
                               
@@ -449,16 +82,15 @@ def main():
         log_directory += str(args.num_retrain_epoch) + '_num_retrain_epoch/'
     if args.num_add_batch:
         log_directory += str(args.num_add_batch) + '_num_add_batch/'
-    
+    log_directory += str(args.seed) + '_seed/'
+
     log_time = str(datetime.datetime.now()).replace(' ', '--').replace(':', '-').replace('.', '-')
     log_filename = 'log.' + log_time + '.txt'
     model_filename = 'saved-model.' + log_time + '.pt'
-    per_filename = 'performance.csv'
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
     logname = log_directory + log_filename
     modelname = log_directory + model_filename
-    perfilename = log_directory + per_filename
     
     logging.basicConfig(filename=logname,
                         filemode='a',
@@ -469,18 +101,7 @@ def main():
     if args.data_source == 'yelp':
         X = np.load('./yelp_data/x.npy')
         y = np.load('./yelp_data/y.npy')
-        if args.annotator != 'eye_tracking':
-            attention_labels = np.load('./yelp_data/human_intersection.npy')
-        else:
-            attention_labels = np.load('./yelp_data/human_intersection.npy')
-            eye_embeds = np.load('./eye_data/zuco_gloves.npy')
-            eye_embeds = eye_embeds[:, :43, :]
-            raw_eye_attention_labels = np.load('./eye_data/mfd_scores.npy')
-            raw_eye_attention_labels_std = (raw_eye_attention_labels - raw_eye_attention_labels.min(axis=0)) / (
-                    raw_eye_attention_labels.max(axis=0) - raw_eye_attention_labels.min(axis=0))
-            eye_attention_labels = raw_eye_attention_labels_std * (1. - 0.) + 0.
-            eye_attention_labels = (eye_attention_labels > 0.5).astype(int)
-        attention_labels = attention_labels.astype(int)
+        attention_labels = np.load('./yelp_data/human_intersection.npy').astype(int)
         X_train, X_test, y_train, y_test, attention_labels_train, attention_labels_test = train_test_split(X, y,
                                                                                                            attention_labels,
                                                                                                            test_size=0.3,
@@ -490,19 +111,9 @@ def main():
         X_test = np.load('./medical_data/X_test.npy')
         y_train = np.load('./medical_data/y_train.npy')
         y_test = np.load('./medical_data/y_test.npy')
-        if args.annotator == 'human':
-            attention_labels_train = np.load('./medical_data/att_labels_train.npy').astype(int)
-            attention_labels_test = np.load('./medical_data/att_labels_test.npy').astype(int)
-        elif args.annotator == 'eye_tracking':
-            attention_labels_train = np.load('./medical_data/att_labels_train.npy').astype(int)
-            attention_labels_test = np.load('./medical_data/att_labels_test.npy').astype(int)
-            eye_embeds = np.load('./eye_data/zuco_pubmed.npy')
-            raw_eye_attention_labels = np.load('./eye_data/zuco_pubmed_att_labels.npy')
-            raw_eye_attention_labels_std = (raw_eye_attention_labels - raw_eye_attention_labels.min(axis=0)) / (
-                    raw_eye_attention_labels.max(axis=0) - raw_eye_attention_labels.min(axis=0))
-            eye_attention_labels = raw_eye_attention_labels_std * (1. - 0.) + 0.
-            eye_attention_labels = (eye_attention_labels > 0.5).astype(int)
-    
+        attention_labels_train = np.load('./medical_data/att_labels_train.npy').astype(int)
+        attention_labels_test = np.load('./medical_data/att_labels_test.npy').astype(int)
+
     elif args.data_source == 'movie':
         X_train = np.load('./movie_data/x_train.npy')
         X_test = np.load('./movie_data/x_val_test.npy')
@@ -510,21 +121,30 @@ def main():
         y_test = np.load('./movie_data/y_val_test.npy')
         attention_labels_train = np.load('./movie_data/att_labels_train.npy').astype(int)
         attention_labels_test = np.load('./movie_data/att_labels_val_test.npy').astype(int)
-        if args.annotator == 'human':
-            attention_labels_train = np.load('./movie_data/att_labels_train.npy').astype(int)
-            attention_labels_test = np.load('./movie_data/att_labels_val_test.npy').astype(int)
-        elif args.annotator == 'eye_tracking':
-            attention_labels_train = np.load('./movie_data/att_labels_train.npy').astype(int)
-            attention_labels_test = np.load('./movie_data/att_labels_val_test.npy').astype(int)
-            eye_embeds = np.load('./eye_data/zuco_gloves.npy')
-            eye_embeds = eye_embeds[:, :43, :]
-            raw_eye_attention_labels = np.load('./eye_data/mfd_scores.npy')
-            raw_eye_attention_labels_std = (raw_eye_attention_labels - raw_eye_attention_labels.min(axis=0)) / (
-                    raw_eye_attention_labels.max(axis=0) - raw_eye_attention_labels.min(axis=0))
-            eye_attention_labels = raw_eye_attention_labels_std * (1. - 0.) + 0.
-            eye_attention_labels = (eye_attention_labels > 0.5).astype(int)
 
-    if args.annotator in ['human', 'human_intersection'] and 0.0 < args.ham_percent < 1.0:
+    elif args.data_source.startswith('senti'):
+        X_train_ham = np.load(f'./{args.data_source}_data/x_with_att_train.npy')
+        X_train_noham = np.load(f'./{args.data_source}_data/x_without_att_train.npy')
+        X_test_ham = np.load(f'./{args.data_source}_data/x_with_att_val_test.npy')
+        X_test_noham = np.load(f'./{args.data_source}_data/x_without_att_val_test.npy')
+        y_train_ham = np.load(f'./{args.data_source}_data/y_with_att_train.npy')
+        y_train_noham = np.load(f'./{args.data_source}_data/y_without_att_train.npy')
+        y_test_ham = np.load(f'./{args.data_source}_data/y_with_att_val_test.npy')
+        y_test_noham = np.load(f'./{args.data_source}_data/y_without_att_val_test.npy')
+        raw_attention_labels_train_ham = np.load(f'./{args.data_source}_data/att_labels_with_att_train.npy', allow_pickle=True)
+        raw_attention_labels_test_ham = np.load(f'./{args.data_source}_data/att_labels_with_att_val_test.npy', allow_pickle=True)
+        attention_labels_train_ham = pad_sequences(raw_attention_labels_train_ham, maxlen=56, value=0, dtype="int", truncating="post", padding="post")
+        attention_labels_test_ham = pad_sequences(raw_attention_labels_test_ham, maxlen=56, value=0, dtype="int", truncating="post", padding="post")
+        attention_labels_train_noham = -np.ones((X_train_noham.shape[0], X_train_noham.shape[1]), int)
+        attention_labels_test_noham = -np.ones((X_test_noham.shape[0], X_test_noham.shape[1]), int)
+        attention_labels_train = np.concatenate([attention_labels_train_ham, attention_labels_train_noham])
+        attention_labels_test = np.concatenate([attention_labels_test_ham, attention_labels_test_noham])
+        X_train = np.concatenate([X_train_ham, X_train_noham])
+        y_train = np.concatenate([y_train_ham, y_train_noham])
+        X_test = np.concatenate([X_test_ham, X_test_noham])
+        y_test = np.concatenate([y_test_ham, y_test_noham])
+
+    if args.annotator in ['human', 'human_intersection'] and 0.0 < args.ham_percent < 1.0 and not args.data_source.startswith('senti'):
         (X_train_ham, X_train_noham, y_train_ham, y_train_noham, attention_labels_train_ham,
          attention_labels_train_noham) = train_test_split(X_train, y_train, attention_labels_train,
                                                           test_size=(1 - args.ham_percent), random_state=args.seed)
@@ -589,7 +209,12 @@ def main():
             train_att_losses.append(train_attention_loss_ham)
             
             # eval
-            human_likeness = eval_human_likeness(model, X_test, y_test, attention_labels_test, device)
+            if args.data_source.startswith('senti'):
+                human_likeness, valid_att_pred = eval_human_likeness(model, X_test_ham, y_test_ham,
+                                                                     attention_labels_test_ham, device)
+            else:
+                human_likeness, valid_att_pred = eval_human_likeness(model, X_test, y_test, attention_labels_test,
+                                                                     device)
             
             content = f'human_likeness: {human_likeness}'
             print(content)
@@ -688,7 +313,10 @@ def main():
         train_att_losses.append(train_attention_loss_ham)
         
         # eval
-        human_likeness = eval_human_likeness(model, X_test, y_test, attention_labels_test, device)
+        if args.data_source.startswith('senti'):
+            human_likeness, valid_att_pred = eval_human_likeness(model, X_test_ham, y_test_ham, attention_labels_test_ham, device)
+        else:
+            human_likeness, valid_att_pred = eval_human_likeness(model, X_test, y_test, attention_labels_test, device)
         
         content = f'human_likeness: {human_likeness}'
         print(content)
@@ -717,7 +345,7 @@ def main():
     model = model.to(device)
     
     # train on document-level supervision
-    best_valid_acc, human_likeness_best_acc, suff_best_acc, comp_best_acc  = 0, 0, 0, 0
+    best_valid_acc, human_likeness_best_acc, = 0, 0,
     train_cls_losses = []
     eval_losses = []
     if args.early_stop:
@@ -736,18 +364,22 @@ def main():
                                                                             ham_batch_size)
             
         if args.annotator in ['human', 'human_intersection']:
-            train_classification_loss_ham, train_acc = train_no_ham(model, optimizer_classification, criterion,
+            train_classification_loss_ham, train_acc, train_f1 = train_no_ham(model, optimizer_classification, criterion,
                                                                     train_batch_noham_generator, num_batches, device)
             train_cls_losses.append(train_classification_loss_ham)
             
         # eval
         test_batch_generator = batch_seq_generator(X_test, y_test, args.eval_batch_size)
         num_batches = X_test.shape[0] // args.eval_batch_size
-        valid_loss, valid_acc = evaluate_acc(model, criterion, test_batch_generator, num_batches, device)
+        valid_loss, valid_performance_dict, valid_y_pred_values, valid_y_pred = evaluate_acc(model, criterion, test_batch_generator, num_batches, device)
         eval_losses.append(valid_loss)
+        valid_acc = valid_performance_dict['acc']
+        valid_f1 = valid_performance_dict['mac_f1']
 
-
-        human_likeness = eval_human_likeness(model, X_test, y_test, attention_labels_test, device)
+        if args.data_source.startswith('senti'):
+            human_likeness, valid_att_pred = eval_human_likeness(model, X_test_ham, y_test_ham, attention_labels_test_ham, device)
+        else:
+            human_likeness, valid_att_pred = eval_human_likeness(model, X_test, y_test, attention_labels_test, device)
         if best_valid_acc < valid_acc:
             best_valid_acc = valid_acc
             human_likeness_best_acc = human_likeness
@@ -762,11 +394,16 @@ def main():
         if epoch == 0 or epoch == args.n_epochs - 1 or (args.early_stop and early_stop_sign > 3):
             test_batch_generator = batch_seq_generator(X_test, y_test, args.eval_batch_size)
             num_batches = X_test.shape[0] // args.eval_batch_size
-            valid_loss, valid_acc, valid_suff, valid_comp = evaluate(model, criterion, test_batch_generator, num_batches, device)
-        print(f'Train Acc: {train_acc * 100:.2f}%')
-        logging.info(f'Train Acc: {train_acc * 100:.2f}%')
-        print(f'Val. Acc: {valid_acc * 100:.2f}%')
-        logging.info(f'Val. Acc: {valid_acc * 100:.2f}%')
+            valid_loss, valid_performance_dict, valid_y_pred_values, valid_y_pred = evaluate(model, criterion,
+                                                                                             test_batch_generator,
+                                                                                             num_batches, device)
+        print(f'Train Acc: {train_acc * 100:.2f}%, Train Macro F1: {train_f1 * 100:.2f}%')
+        logging.info(f'Train Acc: {train_acc * 100:.2f}%, Train Macro F1: {train_f1 * 100:.2f}%')
+        print(f'Val. Acc: {valid_acc * 100:.2f}%, Val. Macro F1: {valid_f1 * 100:.2f}%')
+        logging.info(f'Val. Acc: {valid_acc * 100:.2f}%, Val. Macro F1: {valid_f1 * 100:.2f}%')
+        content = f'human_likeness: {human_likeness}'
+        print(content)
+        logging.info(content)
         
         if args.early_stop and early_stop_sign > 3:
             break
@@ -775,17 +412,24 @@ def main():
     torch.cuda.empty_cache()
     if args.model_type.split('-')[1] == 'RA':
         model = RNN_RA_Attention(args.embedding_dim, args.hidden_dim, args.n_layers, args.model_type)
-
-
     model.load_state_dict(torch.load(modelname))
     if n_gpu > 1:
         model = torch.nn.DataParallel(model)
     model = model.to(device)
     test_batch_generator = batch_seq_generator(X_test, y_test, args.eval_batch_size)
     num_batches = X_test.shape[0] // args.eval_batch_size
-    best_valid_loss, best_valid_acc, suff_best_acc, comp_best_acc = evaluate(model, criterion, test_batch_generator, num_batches, device)
-    content = (f"Best valid accuracy: {best_valid_acc}, Human Likeness: {human_likeness_best_acc},"
-    f" Sufficiency: {suff_best_acc}, Comprehensiveness: {comp_best_acc}")
+    best_valid_loss, best_valid_performance_dict, valid_y_pred_values, valid_y_pred = evaluate(model, criterion,
+                                                                                               test_batch_generator,
+                                                                                               num_batches, device)
+    if args.data_source.startswith('senti'):
+        human_likeness_best_acc, valid_att_pred = eval_human_likeness(model, X_test_ham, y_test_ham,
+                                                                      attention_labels_test_ham,
+                                                                      device)
+    else:
+        human_likeness_best_acc, valid_att_pred = eval_human_likeness(model, X_test, y_test, attention_labels_test,
+                                                                      device)
+    content = (f"Best valid accuracy: {best_valid_performance_dict['acc']}, Human Likeness: {human_likeness_best_acc},"
+               f" F1: {best_valid_performance_dict['mac_f1']}")
     print(content)
     logging.info(content)
     
@@ -803,26 +447,35 @@ def main():
     figure_filename = 'fig.' + str(datetime.datetime.now()).replace(' ', '--') + '.png'
     figfullname = log_directory + figure_filename
     plt.savefig(figfullname, dpi=fig1.dpi)
+
+    att_pred_dir = log_directory + 'att_prediction.npy'
+    np.save(att_pred_dir, valid_att_pred)
+    y_pred_dir = log_directory + 'y_prediction.npy'
+    np.save(y_pred_dir, valid_y_pred)
+    y_prob_pred_dir = log_directory + 'y_prob_prediction.npy'
+    np.save(y_prob_pred_dir, valid_y_pred_values)
     
     performance_dict = vars(args)
     performance_dict['Accuracy'] = best_valid_acc
+    for k, v in best_valid_performance_dict.items():
+        performance_dict['Best_' + k] = v
+    performance_dict['Human_likeness_best_acc'] = human_likeness_best_acc
     performance_dict['Time'] = str(datetime.datetime.now())
     performance_dict['Last_Accuracy'] = valid_acc
     performance_dict['Last_Human_likeness'] = human_likeness
-    performance_dict['Last_Sufficiency'] = valid_suff
-    performance_dict['Last_Comprehensiveness'] = valid_comp
-    performance_dict['Human_likeness_best_acc'] = human_likeness_best_acc
-    performance_dict['suff_best_acc'] = suff_best_acc
-    performance_dict['comp_best_acc'] = comp_best_acc
+    for k, v in valid_performance_dict.items():
+        performance_dict['Last_' + k] = v
     performance_dict['log_directory'] = log_directory
     performance_dict['log_filename'] = log_filename
     performance_dict['note'] = NOTE
-    with open('all_test_performance.txt', 'a+') as outfile:
+    for key, value in performance_dict.items():
+        if type(value) is np.int64:
+            performance_dict[key] = int(value)
+    with open(args.performance_file, 'a+') as outfile:
         outfile.write(json.dumps(performance_dict) + '\n')
     if (not args.save_model) and os.path.exists(modelname):
         os.remove(modelname)
-    
-        
+
         
 if __name__ == '__main__':
     main()
