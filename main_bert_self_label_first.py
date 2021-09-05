@@ -362,7 +362,7 @@ def main():
             train_att_losses.append(train_attention_loss_ham)
 
             # eval
-            if not args.data_source.startswith('senti'):
+            if args.data_source.startswith('senti'):
                 human_likeness, valid_att_pred = eval_human_likeness(model, X_test_ham, y_test_ham, masks_test_ham,
                                                                      attention_labels_test_ham, device)
             else:
@@ -482,7 +482,7 @@ def main():
         train_att_losses.append(train_attention_loss_ham)
 
         # eval
-        if not args.data_source.startswith('senti'):
+        if args.data_source.startswith('senti'):
             human_likeness, valid_att_pred = eval_human_likeness(model, X_test_ham, y_test_ham, masks_test_ham,
                                                                  attention_labels_test_ham, device)
         else:
@@ -555,7 +555,7 @@ def main():
         valid_f1 = valid_performance_dict['mac_f1']
         eval_losses.append(valid_loss)
 
-        if not args.data_source.startswith('senti'):
+        if args.data_source.startswith('senti'):
             human_likeness, valid_att_pred = eval_human_likeness(model, X_test_ham, y_test_ham, masks_test_ham,
                                                                  attention_labels_test_ham, device)
         else:
@@ -605,7 +605,7 @@ def main():
     best_valid_loss, best_valid_performance_dict, valid_y_pred_values, valid_y_pred = evaluate(model, criterion,
                                                                                                test_batch_generator,
                                                                                                num_batches, device)
-    if not args.data_source.startswith('senti'):
+    if args.data_source.startswith('senti'):
         human_likeness_best_acc, valid_att_pred = eval_human_likeness(model, X_test_ham, y_test_ham, masks_test_ham,
                                                              attention_labels_test_ham, device)
     else:

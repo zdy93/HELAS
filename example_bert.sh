@@ -14,7 +14,7 @@ if [ $ANN == "eye_tracking" ]
 then
     export HAM=1.0
 else
-    export HAM=HAM
+    export HAM=${HAM}
 fi
 if [ $DATA == "senti" ]
 then

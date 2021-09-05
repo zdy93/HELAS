@@ -16,7 +16,7 @@ if [ $ANN == "eye_tracking" ]
 then
     export HAM=1.0
 else
-    export HAM=$HAM
+    export HAM=${HAM}
 fi
 if [ $RNN == "LSTM" ]
 then
@@ -75,7 +75,7 @@ python main_rnn_two_steps.py \
    --annotator human \
    --data_source ${DATA} \
    --log_dir ${DATA}-${RNN}-RA-CE \
-   --ham_percent 0.02 \
+   --ham_percent ${HAM} \
    --learning_rate ${LR} \
    --model_type ${RNN}-RA-CE \
    --early_stop \
