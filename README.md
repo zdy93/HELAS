@@ -1,5 +1,5 @@
 # HELAS
-Codes and Data for Human-like Explanation for Text Classification with Limited Attention Supervision
+This repository is the official implementation of the IEEE BigData 2021 paper [Human-like Explanation for Text Classification with Limited Attention Supervision](https://ieeexplore.ieee.org/abstract/document/9671444).
 
 ## Requirement
 ### Language
