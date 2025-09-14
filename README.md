@@ -79,4 +79,4 @@ See sample scripts [example_rnn.sh](./example_rnn.sh) and [example_bert.sh](./ex
 
 We refer users to [main_bert.py](./main_bert.py) and other scripts to see the usage of all parameters.
 
-[Download_ZuCo_and_Preprocessing.ipynb](./Download_ZuCo_and_Preprocessing.ipynb) , [Preprocessing_YELP.ipynb](./Preprocessing_YELP.ipynb), [i2b2_process.ipynb](./i2b2_process.ipynb), [Preprocessing_movie.ipynb](./Preprocessing_movie.ipynb), and [Process_SST.ipynb](./Process_SST.ipynb) are used for pre-processing ZuCo, YELP, N2C2, Movie review, and SST dataset.
+[Download_ZuCo_and_Preprocessing.ipynb](./Download_ZuCo_and_Preprocessing.ipynb) , [Preprocessing_YELP.ipynb](./Preprocessing_YELP.ipynb), [Preprocessing_movie.ipynb](./Preprocessing_movie.ipynb), and [Process_SST.ipynb](./Process_SST.ipynb) are used for pre-processing ZuCo, YELP, Movie review, and SST dataset.
